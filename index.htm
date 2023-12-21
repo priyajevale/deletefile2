@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .delete-btn, .edit-btn {
+      cursor: pointer;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+  <h2>User Management</h2>
+
+  <form id="userForm">
+    <label for="name">Name:</label>
+    <input type="text" id="name" required>
+
+    <label for="phone">Phone:</label>
+    <input type="tel" id="phone" required>
+
+    <label for="email">Email:</label>
+    <input type="email" id="email" required>
+
+    <input type="hidden" id="userId" value="">
+
+    <button type="button" onclick="submitForm()">Submit</button>
+  </form>
+
+  <table id="userTable">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Email</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    let users = [];
+
+    async function addUser() {
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const email = document.getElementById('email').value;
+
+      const user = { _id: generateId(), name, phone, email };
+
+      try {
+        await axios.post('https://crudcrud.com/api/754ec80655e54cecbd7d3f662e79b9fa/sData', user);
+        users.push(user);
+        updateTable();
+        clearForm();
+      } catch (error) {
+        console.error('Error saving user to server:', error);
+      }
+    }
+
+    function deleteUser(userId) {
+      axios.delete(`https://crudcrud.com/api/754ec80655e54cecbd7d3f662e79b9fa/sData/${userId}`)
+        .then(() => {
+          users = users.filter(user => user._id !== userId);
+          updateTable();
+        })
+        .catch(error => {
+          console.error('Error deleting user from server:', error);
+        });
+    }
+
+    function editUser(userId) {
+      const userToEdit = users.find(user => user._id === userId);
+      if (userToEdit) {
+        document.getElementById('userId').value = userToEdit._id;
+        document.getElementById('name').value = userToEdit.name;
+        document.getElementById('phone').value = userToEdit.phone;
+        document.getElementById('email').value = userToEdit.email;
+      }
+    }
+
+    async function submitForm() {
+      const userId = document.getElementById('userId').value;
+      const name = document.getElementById('name').value;
+      const phone = document.getElementById('phone').value;
+      const email = document.getElementById('email').value;
+
+      if (userId) {
+        // Editing existing user
+        const updatedUser = { _id: userId, name, phone, email };
+
+        try {
+          await axios.put(`https://crudcrud.com/api/754ec80655e54cecbd7d3f662e79b9fa/sData/${userId}`, updatedUser);
+          users = users.map(user => (user._id === userId ? updatedUser : user));
+          updateTable();
+          clearForm();
+        } catch (error) {
+          console.error('Error updating user details:', error);
+        }
+      } else {
+        // Adding new user
+        addUser();
+      }
+    }
+
+    function updateTable() {
+      const tableBody = document.querySelector('#userTable tbody');
+      tableBody.innerHTML = '';
+
+      users.forEach(user => {
+        const row = tableBody.insertRow();
+        row.innerHTML = `
+          <td>${user.name}</td>
+          <td>${user.phone}</td>
+          <td>${user.email}</td>
+          <td>
+            <span class="delete-btn" onclick="deleteUser('${user._id}')">&#10006;</span>
+            <span class="edit-btn" onclick="editUser('${user._id}')">&#9998;</span>
+          </td>
+        `;
+      });
+    }
+
+    function clearForm() {
+      document.getElementById('userId').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('phone').value = '';
+      document.getElementById('email').value = '';
+    }
+
+    function generateId() {
+      return '_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // Fetch existing users on page load
+    async function fetchUsers() {
+      try {
+        const response = await axios.get('https://crudcrud.com/api/754ec80655e54cecbd7d3f662e79b9fa/sData');
+        users = response.data;
+        updateTable();
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      }
+    }
+
+    // Call fetchUsers on page load
+    fetchUsers();
+  </script>
+
+</body>
+</html>
